@@ -19,18 +19,21 @@ use pocketmine\item\ItemFactory;
 use pocketmine\event\server\DataPacketReceiveEvent;
 
 use pocketmine\Player;
-use pocketmine\Server;
 
 use pocketmine\utils\Config;
 use pocketmine\scheduler\Task;
 use pocketmine\math\Vector3;
 use pocketmine\entity\Entity;
 
-class Clank extends PluginBase implements Listener
-{
+class Clank extends PluginBase implements Listener {
+
+    /** @var Config */
     private $config;
+    /** @var array */
     private $C;
+    /** @var EconomyAPI */
     private $economy;
+    /** @var int */
     private $fid;
     private $fid2;
     private $fid3;
@@ -40,9 +43,6 @@ class Clank extends PluginBase implements Listener
     public function onEnable()
     {
         $dir = $this->getDataFolder();
-        if (!file_exists($dir)) {
-            mkdir($dir, 0744, true);
-        }
         $this->config = new Config($dir . "clank.yml", Config::YAML, [
             "money" => 200,
             "item" => [
@@ -95,7 +95,7 @@ class Clank extends PluginBase implements Listener
                         if ($sender->getInventory()->canAddItem($resultItem)) {
                             $this->economy->reduceMoney($sender, $this->C["money"]);
                             $sender->setImmobile(true);
-                            $this->getServer()->getScheduler()->scheduleRepeatingTask(new ItemAnime($sender, $resultItem), 2);
+                            $this->getScheduler()->scheduleRepeatingTask(new ItemAnime($this, $sender, $resultItem), 2);
                         } else {
                             $sender->sendMessage("アイテムが追加できない為、ガチャはキャンセルされました。");
                         }
@@ -301,12 +301,18 @@ class Clank extends PluginBase implements Listener
 
 class ItemAnime extends Task
 {
+    /** @var Clank */
+    private $clank;
+    /** @var Player */
     private $player;
+    /** @var AddItemEntityPacket */
     private $pk;
+    /** @var int */
     private $count = 0;
 
-    public function __construct(Player $player, Item $resultItem)
+    public function __construct(Clank $clank, Player $player, Item $resultItem)
     {
+        $this->clank = $clank;
         $dir = $player->getDirectionVector();
         $pk = new AddItemEntityPacket();
         $pk->entityUniqueId = mt_rand(1000000, 9999999);
@@ -328,7 +334,7 @@ class ItemAnime extends Task
         $pk->item = Item::get($id, 0, 1);
         if (40 < $this->count) {
             $pk->item = $this->pk->item;
-            Server::getInstance()->getScheduler()->cancelTask($this->getTaskId());
+            $this->clank->getScheduler()->cancelTask($this->getTaskId());
         }
         $this->player->dataPacket($pk);
         ++$this->count;
@@ -336,7 +342,7 @@ class ItemAnime extends Task
 
     public function onCancel()
     {
-        Server::getInstance()->getScheduler()->scheduleDelayedTask(new Result($this->player, $this->pk), 20 * 3);
+        $this->clank->getScheduler()->scheduleDelayedTask(new Result($this->player, $this->pk), 20 * 3);
     }
 }
 

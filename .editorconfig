@@ -1,0 +1,11 @@
+# http://editorconfig.org/
+root = yes
+
+[*]
+indent_size = 4
+indent_style = space
+end_of_line = lf
+charset = utf-8
+
+[{*.yml,*.json}]
+indent_size = 2
